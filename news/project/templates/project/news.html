@@ -1,0 +1,84 @@
+{% extends 'flatpages/default.html' %}
+
+{% load custom_filters %}!
+{% load custom_tags %}
+{% load custom_censor %}
+
+{% block title %}
+Posts
+{% endblock title %}
+
+{% block content %}
+
+<form action="" method="get" >
+    {{ filterset.form.non_field_errors }}
+
+    {{ filterset.form.name__icontains.errors }}
+    <label for="{{ filterset.form.name__icontains.id }}">Search</label>
+    <input
+        id="{{ filterset.form.name__icontains.id }}"
+        name="{{ filterset.form.name__icontains.name }}"
+        value="{{ filterset.form.name__icontains.value }}"
+        class="form-control"
+    >
+    <input type="submit" class="mt-3 btn-primary" value="Найти" />
+</form>
+   <h1>Новости!</h1>
+   <h3>{% current_time '%b %d %Y' %}</h3>
+   <hr>
+
+  {# Теперь будем проверять не request.user.is_authenticated, а конкретные права #}
+    {% if perms.project.add_post %}
+    <a href="{% url 'post_create' %}">Добавить новость</a>
+    {% endif %}
+
+   {% if products %}
+       <table>
+           <tr>
+               <td>Название</td>
+               <td>Описание</td>
+               <td>Дата загрузки</td>
+
+               {# Условие получается составным. #}
+               {% if perms.simpleapp.change_product or perms.project.delete_post %}
+               <td>Действия</td>
+               {% endif %}
+           </tr>
+
+           {% for product in products %}
+           <tr>
+               <td>{{ post.title|censor }}</td>
+               <td>{{ post.text|censor.description|truncatewords:20 }}</td>
+               <td>{{ post.time_loaded|date:"F d, Y" }}</td>
+
+               {# А здесь доступ для каждой ссылки теперь будем проверять отдельно #}
+               {% if <perms class="project"></perms> %}
+               <a href="{% url 'change_post' pk=post.id %}">Изменить</a>
+               {% endif %}
+               {% if perms.simpleapp.delete_product %}
+               <a href="{% url 'delete_post' post.id %}">Удалить</a>
+               {% endif %}
+           </tr>
+           {% endfor %}
+
+       </table>
+
+   {% if page_obj.has_previous %}
+       <a href="?page=1">1</a>
+       {% if page_obj.previous_page_number != 1 %}
+           ...
+           <a href="?page={{ page_obj.previous_page_number }}">{{ page_obj.previous_page_number }}</a>
+       {% endif %}
+   {% endif %}
+
+   {{ page_obj.number }}
+
+   {% if page_obj.has_next %}
+       <a href="?page={{ page_obj.next_page_number }}">{{ page_obj.next_page_number }}</a>
+       {% if paginator.num_pages != page_obj.next_page_number %}
+           ...
+           <a href="?page={{ page_obj.paginator.num_pages }}">{{ page_obj.paginator.num_pages }}</a>
+       {% endif %}
+   {% endif %}
+
+{% endblock content %}
