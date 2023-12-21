@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from django.urls import reverse_lazy
 
@@ -16,6 +16,9 @@ from django.db.models import Exists, OuterRef
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_protect
 from .models import Subscription, Category
+from .tasks import hello, printer
+from django.http import HttpResponse
+from django.views import View
 
 
 class PostCreate(LoginRequiredMixin, CreateView):
@@ -99,3 +102,10 @@ def subscriptions(request):
         'subscriptions.html',
         {'categories': categories_with_subscriptions},
     )
+
+
+class IndexView(View):
+    def get(self, request):
+            printer.apply_async([10],eta=datetime.now() + timedelta(seconds=5))
+            hello.delay()
+            return HttpResponse('Hello!')
