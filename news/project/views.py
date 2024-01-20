@@ -20,6 +20,11 @@ from .tasks import hello, printer
 from django.http import HttpResponse
 from django.views import View
 
+from django.views.decorators.cache import cache_page
+
+@cache_page(60 * 15) # в аргументы к декоратору передаём количество секунд, которые хотим, чтобы страница держалась в кэше. Внимание! Пока страница находится в кэше, изменения, происходящие на ней, учитываться не будут!
+def my_view(request):
+    ...
 
 class PostCreate(LoginRequiredMixin, CreateView):
     raise_exception = True

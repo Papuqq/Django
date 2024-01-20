@@ -4,6 +4,8 @@ from django.core.validators import MinValueValidator
 from django.views.generic import ListView, DetailView
 from django.urls import reverse
 from django.contrib.auth.models import User
+from django.core.cache import cache
+
 
 
 class Post(models.Model):
@@ -15,16 +17,11 @@ class Post(models.Model):
         auto_now=True,
     )
     description = models.TextField()
-    quantity = models.IntegerField(
-        validators=[MinValueValidator(0)],
-    )
+    quantity = models.IntegerField(validators=[MinValueValidator(0, 'Quantity should be >= 0')], default=0)
     category = models.ForeignKey(
         to='Category',
         on_delete=models.CASCADE,
         related_name='news',
-    )
-    price = models.FloatField(
-        validators=[MinValueValidator(0.0)],
     )
 
     def __str__(self):
@@ -32,6 +29,11 @@ class Post(models.Model):
 
     def get_absolute_url(self):
         return reverse('post_detail', args=[str(self.id)])
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs) # сначала вызываем метод родителя, чтобы объект сохранился
+        cache.delete(f'post-{self.pk}') # затем удаляем его из кэша, чтобы сбросить его
+
 
 
 class Category(models.Model):
@@ -52,4 +54,12 @@ class Subscription(models.Model):
         to='Category',
         on_delete=models.CASCADE,
         related_name='subscriptions',
+    )
+
+
+class Author(models.Model):
+    name = models.CharField(
+        default='NoName',
+        max_length=64,
+        verbose_name='name of author'
     )
