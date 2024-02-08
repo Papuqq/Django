@@ -1,32 +1,25 @@
 from django.contrib.auth.models import User
-from django.core.mail import EmailMultiAlternatives
-from django.db.models.signals import post_save
+from django.core.mail import EmailMultiAlternatives, send_mail
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 
-from .models import Post
+from .models import Post, UserResponse
 
 
-@receiver(post_save, sender=Post)
-def product_created(instance, created, **kwargs):
-    if not created:
-        return
-
-    emails = User.objects.filter(
-        subscriptions__category=instance.category
-    ).values_list('email', flat=True)
-
-    subject = f'Новая новость в блоке {instance.category}'
-
-    text_content = (
-        f'Новость: {instance.title}\n'
-        f'Ссылка на новость: http://127.0.0.1:8000{instance.get_absolute_url()}'
+@receiver (pre_save, sender=UserResponse)
+def my_handler(sender, instance, created, **kwargs):
+    if instance.status:
+        mail = instance.author.email
+        send_mail(
+            subject=f'Обновлена новость {instance.article.category}',
+            message=f'Новость: {instance.article.title}\n'
+                    f'Ссылка на новость: http://127.0.0.1:8000{instance.article.get_absolute_url()}',
+            from_email=None,
+            fail_silently=False,
+            recipient_list=[mail]
+        )
+    mail = instance.article.author.email
+    send_mail(
+    f'Новая новость: {instance.title}\n'
+    f'Ссылка на новость: http://127.0.0.1:8000{instance.get_absolute_url()}'
     )
-    html_content = (
-        f'Новость: {instance.title}<br>'
-        f'<a href="http://127.0.0.1{instance.get_absolute_url()}">'
-        f'Ссылка на новость</a>'
-    )
-    for email in emails:
-        msg = EmailMultiAlternatives(subject, text_content, None, [email])
-        msg.attach_alternative(html_content, "text/html")
-        msg.send()

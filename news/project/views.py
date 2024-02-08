@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from django.urls import reverse_lazy
 
@@ -16,7 +16,15 @@ from django.db.models import Exists, OuterRef
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_protect
 from .models import Subscription, Category
+from .tasks import hello, printer
+from django.http import HttpResponse
+from django.views import View
 
+from django.views.decorators.cache import cache_page
+
+@cache_page(60 * 15) # в аргументы к декоратору передаём количество секунд, которые хотим, чтобы страница держалась в кэше. Внимание! Пока страница находится в кэше, изменения, происходящие на ней, учитываться не будут!
+def my_view(request):
+    ...
 
 class PostCreate(LoginRequiredMixin, CreateView):
     raise_exception = True
@@ -49,6 +57,7 @@ class PostDetail(DetailView):
     context_object_name = 'news'
 
 
+@login_required
 class PostCreate(PermissionRequiredMixin, CreateView):
     permission_required = ('project.add_post',)
     form_class = PostForm
@@ -56,6 +65,7 @@ class PostCreate(PermissionRequiredMixin, CreateView):
     template_name = 'post_edit.html'
 
 
+@login_required
 class PostUpdate(PermissionRequiredMixin, UpdateView):
     permission_required = ('project.change_post',)
     form_class = PostForm
@@ -63,6 +73,7 @@ class PostUpdate(PermissionRequiredMixin, UpdateView):
     template_name = 'post_edit.html'
 
 
+@login_required
 class PostDelete(PermissionRequiredMixin, DeleteView):
     permission_required = ('project.delete_post',)
     model = Post
@@ -99,3 +110,10 @@ def subscriptions(request):
         'subscriptions.html',
         {'categories': categories_with_subscriptions},
     )
+
+
+class IndexView(View):
+    def get(self, request):
+            printer.apply_async([10],eta=datetime.now() + timedelta(seconds=5))
+            hello.delay()
+            return HttpResponse('Hello!')
